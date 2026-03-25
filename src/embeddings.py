@@ -91,6 +91,13 @@ class EmbeddingStore:
             "metadata": self._metadata.get(doc_id),
         }
 
+    def clear(self) -> int:
+        """Remove all documents from the store. Returns the number of documents removed."""
+        removed = len(self._embeddings)
+        self._embeddings.clear()
+        self._metadata.clear()
+        return removed
+
     def count(self) -> int:
         return len(self._embeddings)
 
