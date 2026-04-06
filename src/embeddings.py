@@ -109,3 +109,33 @@ class EmbeddingStore:
             "total_documents": self.count(),
             "dimensions": list(dimensions),
         }
+
+    def batch_add(
+        self,
+        embeddings: list[list[float]],
+        doc_ids: Optional[list[str]] = None,
+        metadata_list: Optional[list[dict]] = None,
+    ) -> list[str]:
+        """Add multiple embeddings in a single operation."""
+        ids = []
+        for i, embedding in enumerate(embeddings):
+            doc_id = doc_ids[i] if doc_ids and i < len(doc_ids) else None
+            meta = metadata_list[i] if metadata_list and i < len(metadata_list) else None
+            ids.append(self.add(embedding, doc_id=doc_id, metadata=meta))
+        return ids
+
+    def find_duplicates(self, threshold: float = 0.98) -> list[tuple[str, str, float]]:
+        """Find pairs of documents with similarity above threshold."""
+        duplicates = []
+        doc_ids = list(self._embeddings.keys())
+
+        for i in range(len(doc_ids)):
+            for j in range(i + 1, len(doc_ids)):
+                score = cosine_similarity(
+                    self._embeddings[doc_ids[i]],
+                    self._embeddings[doc_ids[j]],
+                )
+                if score >= threshold:
+                    duplicates.append((doc_ids[i], doc_ids[j], round(score, 4)))
+
+        return duplicates
