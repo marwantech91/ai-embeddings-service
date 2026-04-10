@@ -73,6 +73,29 @@ async def get_stats():
     return store.stats()
 
 
+@app.get("/documents/{doc_id}")
+async def get_document(doc_id: str):
+    """Retrieve a document's metadata and dimensions."""
+    doc = store.get(doc_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
+
+
+@app.post("/batch-embed")
+async def batch_embed(requests: list[EmbedRequest]):
+    """Embed multiple texts in a single request."""
+    results = []
+    for req in requests:
+        try:
+            embedding = await get_openai_embedding(req.text)
+            doc_id = store.add(embedding, doc_id=req.id, metadata=req.metadata)
+            results.append({"id": doc_id, "dimensions": len(embedding), "error": None})
+        except Exception as e:
+            results.append({"id": req.id, "dimensions": 0, "error": str(e)})
+    return {"results": results, "total": len(results)}
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "ok", "documents": store.count()}
